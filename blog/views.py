@@ -1,8 +1,9 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import BlogSerializer
-from .models import Blog
+from .serializers import BlogSerializer, TagSerializer, CategorySerializer
+from .models import Blog , Tag , Category
+from rest_framework.permissions import IsAdminUser
 
 # Create your views here.
 
@@ -34,3 +35,20 @@ class BlogDeleteView(APIView):
         blog = Blog.objects.get(id=kwargs['id'])
         blog.delete()
         return Response(status=204)
+
+class TagCreateView(APIView):
+    def post(self, request,*args, **kwargs):
+        serializer = TagSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    
+class CategoryCreateView(APIView):
+    permission_classes = [IsAdminUser]
+    def post(self, request,*args, **kwargs):
+        serializer = CategorySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
