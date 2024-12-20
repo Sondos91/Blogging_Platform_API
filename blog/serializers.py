@@ -24,10 +24,12 @@ class BlogSerializer(serializers.ModelSerializer):
     Category = CategorySerializer(many=False,required=False)
     class Meta:
         model = Blog
-        fields = ['Title', 'Content', 'Author','Tags']
+        fields = ['Title', 'Content', 'Author','Tags', 'Category']
 
     def create(self, validated_data):
         blog= Blog.objects.create(**validated_data)
         return blog
+    
+
 
 

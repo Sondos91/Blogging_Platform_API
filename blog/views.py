@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from .serializers import BlogSerializer, TagSerializer, CategorySerializer
 from .models import Blog , Tag , Category
 from rest_framework.permissions import IsAdminUser
+from django.db.models import Q
 
 # Create your views here.
 
@@ -52,3 +53,10 @@ class CategoryCreateView(APIView):
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
+    
+class SearchView(APIView):
+    def get(self, request, *args, **kwargs):
+        query = request.query_params.get('q', '')
+        blogs = Blog.objects.filter(Q(Title__icontains=query) | Q(Content__icontains=query)| Q(tag__name__icontains=query)| Q (Author__username__icontains=query))
+        serializer = BlogSerializer(blogs, many=True)
+        return Response(serializer.data, status=200)

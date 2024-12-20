@@ -11,6 +11,7 @@ class Blog(models.Model):
     Published_Date= models.DateTimeField(auto_now_add=False,null=True)
     Created_Date= models.DateTimeField(auto_now_add=True)
     Category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
+    
 
 class Tag(models.Model):
     name = models.CharField(max_length=100)
