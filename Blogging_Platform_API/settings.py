@@ -54,6 +54,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'Blogging_Platform_API.urls'
 AUTH_USER_MODEL = 'accounts.User'
+LOGOUT_REDIRECT_URL = ' accounts/login/'
 
 TEMPLATES = [
     {

@@ -2,8 +2,9 @@ from rest_framework.views import APIView
 from .serializers import UserRegisterSerializer , UserLoginSerializer, UserSerializer   
 from rest_framework.response import Response
 from .models import User
-from  rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from django.contrib.auth import logout
 
 # Create your views here.
 
@@ -46,3 +47,10 @@ class UpdateProfileView(APIView):
             serializer.save()
             return Response(serializer.data, status=200)
         return Response(serializer.errors, status=400)
+    
+class UserLogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request, *args , **kwargs):
+        logout(request)
+        return Response(status=204)
+

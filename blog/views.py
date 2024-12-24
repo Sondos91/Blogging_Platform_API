@@ -57,6 +57,15 @@ class CategoryCreateView(APIView):
 class SearchView(APIView):
     def get(self, request, *args, **kwargs):
         query = request.query_params.get('q', '')
-        blogs = Blog.objects.filter(Q(Title__icontains=query) | Q(Content__icontains=query)| Q(tag__name__icontains=query)| Q (Author__username__icontains=query))
+        blogs = Blog.objects.filter(Q(Title__icontains=query) | Q(Content__icontains=query)| Q(Tags__name__icontains=query)| Q (Author__username__icontains=query))
+        serializer = BlogSerializer(blogs, many=True)
+        return Response(serializer.data, status=200)
+
+class BlogFilterationView(APIView):
+    def get(self, request, *args, **kwargs):
+        category = request.query_params.get('Category', '')
+        author = request.query_params.get('Author', '')
+        tag = request.query_params.get('Tag', '')
+        blogs = Blog.objects.filter(Q(Category__name=category)|Q(Author__username=author)|Q(Tags__name=tag))
         serializer = BlogSerializer(blogs, many=True)
         return Response(serializer.data, status=200)
