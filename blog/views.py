@@ -3,10 +3,19 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializers import BlogSerializer, TagSerializer, CategorySerializer
 from .models import Blog , Tag , Category
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, BasePermission
 from django.db.models import Q
+from .pagination import BlogPagination
+from rest_framework.filters import OrderingFilter
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.exceptions import NotFound
 
 # Create your views here.
+
+class IsOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.Author == request.user
+
 
 class BlogCreateView(APIView):
     def post(self, request,*args, **kwargs):
@@ -23,8 +32,18 @@ class BlogDetailView(APIView):
         return Response(serializer.data, status=200)
 
 class BlogUpdateView(APIView):
+    permission_classes = [IsOwner]
+
+    def get_object(self,id):
+        try:
+            obj = Blog.objects.get(id=id)
+            self.check_object_permissions(self.request, obj)
+            return obj
+        except Blog.DoesNotExist:
+            raise NotFound ('Blog not found')
+
     def put(self, request, *args, **kwargs):
-        blog = Blog.objects.get(id=kwargs['id'])
+        blog = self.get_object(kwargs['id'])
         serializer = BlogSerializer(blog, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -32,18 +51,35 @@ class BlogUpdateView(APIView):
         return Response(serializer.errors, status=400)
 
 class BlogDeleteView(APIView):
+    permission_classes = [IsOwner|IsAdminUser]
+    authentication_classes = [TokenAuthentication]
+
+    def get_object(self,id):
+        try:
+            obj = Blog.objects.get(id=id)
+            self.check_object_permissions(self.request, obj)
+            return obj
+        except Blog.DoesNotExist:
+            raise NotFound ('Blog not found')
+
     def delete(self, request, *args, **kwargs):
-        blog = Blog.objects.get(id=kwargs['id'])
+        blog = self.get_object(kwargs['id'])
         blog.delete()
         return Response(status=204)
 
-class TagCreateView(APIView):
-    def post(self, request,*args, **kwargs):
-        serializer = TagSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+# class TagCreateView(APIView):
+#     def post(self, request,*args, **kwargs):
+#         serializer = TagSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=201)
+#         return Response(serializer.errors, status=400)
+    
+class TagDeleteView(APIView):
+    def delete (self, request, *args, **kwargs):
+        tag = Tag.objects.get(id=kwargs['id'])
+        tag.delete()
+        return Response(status=204)
     
 class CategoryCreateView(APIView):
     permission_classes = [IsAdminUser]
@@ -67,5 +103,22 @@ class BlogFilterationView(APIView):
         author = request.query_params.get('Author', '')
         tag = request.query_params.get('Tag', '')
         blogs = Blog.objects.filter(Q(Category__name=category)|Q(Author__username=author)|Q(Tags__name=tag))
+        serializer = BlogSerializer(blogs, many=True)
+        return Response(serializer.data, status=200)
+
+class BlogListView(APIView):
+    pagination_class = BlogPagination
+    filter_backends = [OrderingFilter]
+    ordering_fields = [ 'Category', 'Published_Date']
+    def get(self, request, *args, **kwargs):
+        blogs = Blog.objects.filter(Published_Date__isnull=False).all()
+        paginator = self.pagination_class()
+        sort_by= request.query_params.get('sort_by', '')
+        if sort_by:
+            blogs = blogs.order_by(sort_by)
+        page = paginator.paginate_queryset(blogs, request, view=self)
+        if page is not None:
+            serializer = BlogSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         serializer = BlogSerializer(blogs, many=True)
         return Response(serializer.data, status=200)

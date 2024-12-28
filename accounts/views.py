@@ -5,6 +5,8 @@ from .models import User
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django.contrib.auth import logout
+from rest_framework.authentication import TokenAuthentication
+
 
 # Create your views here.
 
@@ -35,11 +37,12 @@ class UserView(APIView):
 
 class UpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
     def get_object(self,user_id):
         try:
             return User.objects.get(id=user_id)
         except User.DoesNotExist:
-            raise NotFound
+            raise NotFound ('User not found')
     def put(self, request, *args, **kwargs):
         user = request.user
         serializer = UserSerializer(user, data=request.data, partial=True)
@@ -50,7 +53,12 @@ class UpdateProfileView(APIView):
     
 class UserLogoutView(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
     def post(self, request, *args , **kwargs):
+        request.user.auth_token.delete()
+        user = request.user
+        user.save()
+
         logout(request)
-        return Response(status=204)
+        return Response({'message': 'Logout successful.'}, status=200)
 
